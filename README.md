@@ -1,61 +1,306 @@
 # Decentralized Naming Service
 
-This is the second version. Many updates are coming.
-ETC mainnet version: [0x2906797a0a56a0c60525245c01788ecd34063b80](https://gastracker.io/addr/0x2906797a0a56a0c60525245c01788ecd34063b80)
+DexNS 3.0 contracts would be deployed soon.
 
 
-## How to try it
-Web interface is launched and already available: https://dexaran.github.io/nameservice/#help
+# Description
 
+Service provides an opportunity to register a key-phrase 'Name' and associate one address (wallet or contract) and one string variable (metadata) with each key-phrase. External contracts can access Naming Service variables as follows:
 
-You can access this contract directly by following this small guide:
-1. Navigate to [DexNS web UI](https://dexaran.github.io/nameservice/#interact-contract)
-2. TYpe `DexNS` into Contract Name textbox. Functions list will appear under `Read / Write contract` label.
-3. You can type `DexNS extended` into Contract Name textbox to watch debug functions. This functions are only available for contract owner.
-4. Select a function you want to watch. The main two are `registerName` and `getName`. You can choose `getName` and an empty function output template will appear. You can input any text into `_name` field and click `READ` button. It will execute function and show its output. If the name you entered is already registered the `getName` function will show you [ditails like this](https://github.com/Dexaran/DNS/blob/master/HOWTO/HOWTO5.png). Otherwise it will return 0x0 addresses and empty string. `READ` executions are free.
-5. If you want to register `_name` you must go to "Access account" tab and unlock a wallet. Go back to "Contract tab" and choose `registerName` function then input a text you want to be owned by your address. `WRITE` is not free. If you want to register name you should click `WRITE` and transaction info will appear. You need to set Gas Limit to 200 000. Then click `SEND TRANSACTION` and wait for transaction to submit. Enjoy result.
+```js
 
+// The following will initiate a call of address,
+// that is associated with "Bit Ether Coin" string.
+NamingService ns= new NamingService();
+ns.addressOf("Bit Ether Coin").call(_gas)(_data);
+```
 
-## Description
+Addresses or data can be accessed from the external contract. 
+Naming Service content can't be blocked, removed or censored in any other way. Everyone is allowed to do whatever he/she wants with it.
 
-Service provides an opportunity to register a key-phrase 'Name' and to associate one address (wallet or contract) and one string variable with each key-phrase. External contracts can access Naming Service variables:
+### Metadata specification
 
-`NamingService ns= new NamingService();`
+As DexNS is planned to be used as crosschain smart-contract naming service, I advise to use the first flag for chain identifier. User interface that will work with DexNS **MUST** warn user if he is trying to send a transaction by the DexNS name that doesn't match the currently selected network.
 
-`ns.addressOf("Bit Ether Coin").call(_gas)(_data);`
+Use the following chain identifier flags:
 
-`//this will initiate a call of address associated with "Bit Ether Coin" string.`
+`-ETC` for Ethereum CLassic chain.
 
-I don't insist on how to use contract functions. You can utilize string variable in any way you want. Offchain resources like emails, links or whatever else is needed.
-For example "Dexaran" word is associated with "https://github.com/Dexaran/" link. Also key-phrase "TheDAO hacker" is associated with his address and he is the owner of this Name.
+`-ETH` for Ethereum chain.
 
-Addresses or stringified data can be accessed from the external contract. 
-Naming Service content can't be blocked, removed or censored in any other way. Everyone is allowed to do whatever he/she wants with it, for example connect Names with addresses or store data in the immutable storage.
+`-UBQ` for Ubiq chain.
+
+`-EXP` for Expanse chain.
+
+`-ROP` for Ropsten.
+
+`-RIN` for Rinkeby.
+
+`-KOV` for Kovan.
+
+Use the following key flags before data chunks:
+
+`-A ` for ABI.
+
+`-L ` for attached link.
+
+`-S ` for source code reference.
+
+`-i`  for informational data chunk.
+
+Example of metadata for DexNS contract:
+`-ETC -L https://author.me/ -S https://github.com/source -A [{"constant":false,"inputs":[],"name":"foo","outputs":[],"payable":false,"type":"function"}]`
 
 # Details 
+
 - `Name` is a key-phrase that will be associated with name data. Each `Name` contains:
-    - `owner` the owner of Name.
-    - `addr` associated address.
-    - `value` stringified associated data.
-    - `endblock` the number of block on which ownership of this Name expires.
-    - `signature` sha256 hash of this Name key-phrase.
+    - `owner`       the owner of Name.
+    - `addr`        associated address.
+    - `metadata`    stringified associated data.
+    - `hideOwner`   If set to `true` then the contract will `throw` any attempt to access `ownerOf(Name)`.
+    - `signature`   sha256 hash of this Name key-phrase.
     
 
-You can register Name and became its owner. You will own it until specified block with `endblock` number. If no one will claim your Name after `endblock` you will continue to be its owner but if Name will be re-registered it will be updated with a new owner and new Name data. 
+You can register Name and became its owner. You will own the name before the expiry of the `nameOwning` time. If no one will claim your Name after `expiration[Name]`, then you will continue to be the Name owner. If the Name will be re-registered after the expiration, then you will lose control over this Name. You can extend the term of ownership of the Name before it expires.
+
+### Functions
+
+### `DexNS.sol` contract
+
+##### registerName
+
+```js
+function registerName(string _name) payable returns (bool ok)
+```
+Register a new name at Naming Service. `msg.sender` will become `owner` and `address` of this name. `metadata` will be set to "-ETC" by default.
+
+##### registerAndUpdateName
+
+```js
+function registerAndUpdateName(string _name, address _owner, address _destination, string _metadata, bool _hideOwner) payable returns (bool ok)
+```
+Register a new `_name` at Naming Service. `_owner` will become `owner` and `_destination` will become the `address` of this name. `metadata` of this Name will be set to `_metadata`. `hideOwner` status will be set to `_hideOwner`.
+
+##### addressOf
+
+```js
+function addressOf(string _name) constant returns (address _addr)
+```
+Returns `address` of the destination of the name.
+
+##### ownerOf
+```js
+function ownerOf(string _name) constant returns (address _owner)
+```
+Returns `owner` of the name.
+
+##### endtimeOf
+```js
+function endtimeOf(string _name) constant returns (uint _expires)
+```
+Returns timestamp when the name will become free to re-register. Returns 0 for not registered names.
+
+NOTE: `endtime` is stored at the logical contract. Not in storage. Logic of registering and freeing names is part of logical contract. Storage only accepts calls from it.
+
+##### updateName
+```js
+function updateName(string _name, address _addr, string _value) { }
+function updateName(string _name, address _addr) { }
+function updateName(string _name, string _value) { }
+```
+
+Changes the contents of `_name` and sets the provided parameters.
+
+##### appendNameMetadata
+```js
+ function appendNameMetadata(string _name, string _value)
+```
+Adds the provided `_value` to the end of the already-existing metadata string of the `_name`.
+
+##### changeNameOwner
+```js
+function changeNameOwner(string _name, address _newOwner)
+```
+Changes `_name` owner to `_newOwner`.
+
+##### hideNameOwner
+```js
+function hideNameOwner(string _name, bool _hide)
+```
+If `_hide` is true then `ownerOf(_name)` will `throw` whenever called. 
+
+Rationale: add possibility to abort execution of transaction/call when someone is trying to interact with name `owner` from external contract. Address that is associated with each `_name` is `addressOf(_name)`, not `ownerOf(_name)` !
+
+##### assignName
+```js
+function assignName(string _name)
+```
+
+Assigns `_name` to `msg.sender` if sender is an owner of the name.
+
+##### unassignName
+```js
+function unassignName(string _name)
+```
+
+Clears `_name` ussignation if `msg.sender` is an owner of the name.
+
+##### extendNameBindingTime
+```js
+function extendNameBindingTime(string _name) payable
+```
+
+Extends binding time of the `_name` by constant specified period if sender provided more funds that required to register/update name. (default 0, free names)
+
+#### Debugging functions (for owner only)
+
+##### change_Storage_Address
+```js
+function change_Storage_Address(address _newStorage)
+```
+
+Changes address of the storage to `_newStorage`.
+
+##### change_Owner
+```js
+function change_Owner(address _newOwner)
+```
+
+Changes owner of the contract to `_newOwner`.
+
+##### disable_Debug
+```js
+function disable_Debug()
+```
+
+Disables possibility to debug the contract.
+
+##### set_Owning_Time
+```js
+function set_Owning_Time(uint _newOwningTime)
+```
+
+Sets the specified time period for the name binding.
+
+##### change_Name_Price
+```js
+function change_Name_Price(uint _newNamePrice)
+```
+
+Sets the specified price for the name registering
 
 
-- `registerName` function allows you to register a new key-phrase Name and become its owner.
-- `updateName` function allows you to update Name content if you are Name owner.
-- `changeNameOwner` function allows owner to transfer ownership to another address.
-- `hideNameOwner` function allows to hide Name owner. If Name owner is hidden `getName(Name)` will return owner as 0x0 and `ownerOf(Name)` will throw an error.
-- `associate` function allows you to assign owned Name to your address. It may be needed to replace hex-address shown on blockchain explorers by your Name.
-- `extendNameBindingTime` function allows you to pay Name again and extend owning period by next `owningTime` blocks.
-- `ownerOf` function allows to check who is Name owner. (for example it may be needed to check ownership in contract trading Names)
-- `addressOf` will return address associated with Name.
-- `valueOf` will return stringified data associated with Name.
-- `endtomeOf` will return the block number on which ownership on given Name expires.
-- `getAssociation` will return an assigned address if Name is inputed or assigned Name when address is inputed.
+## Events
 
-- `uint owningTime ` is a number of blocks you will own registered Name. (=1 500 000 now)
-- `uint namePrice ` is amount of Ether that you need to pay to buy Name. (=0 now)
-- `bool debug ` returns is a contract in debugging mode or not.
+##### Error
+
+```js
+event Error(bytes32)
+```
+Triggered when error occurs.
+
+##### NamePriceChanged
+
+```js
+event NamePriceChanged(uint indexed _price)
+```
+Triggered when price of name is changed by the owner.
+
+##### OwningTimeChanged
+
+```js
+event OwningTimeChanged(uint indexed _period)
+```
+Triggered when binding preiod of time is changed by the owner.
+
+##### DebugDisabled
+
+```js
+event DebugDisabled()
+```
+Triggered when debug is disabled.
+
+
+### `DexNS_Storage.sol` contract
+
+##### functions that would be called from DexNS frontend contract to modify state
+
+```js
+function registerName(string _name) payable returns (bool ok) { }
+function registerAndUpdateName(string, address, address, string, bool) returns (bool ok) { }
+function updateName(string _name, address _addr, string _value) { }
+function updateName(string _name, address _addr) { }
+function updateName(string _name, string _value) { }
+function appendNameMetadata(string _name, string _value) { }
+function changeNameOwner(string _name, address _newOwner) { }
+function hideNameOwner(string _name, bool _hide) { }
+function assignName(string _name) { }
+function unassignName(string _name) { }
+```
+
+#### functions to return contract data state
+
+##### addressOf
+
+```js
+function addressOf(string _name) constant returns (address _addr)
+```
+Returns `address` of the destination of the name.
+
+##### ownerOf
+```js
+function ownerOf(string _name) constant returns (address _owner)
+```
+Returns `owner` of the name.
+
+##### metadataOf
+```js
+function metadataOf(string _name) constant returns (string memory _value) 
+```
+Returns `owner` of the name.
+
+##### assignation
+```js
+ function assignation(address _assignee) constant returns (string _name)
+```
+Returns `_name` that is currently assigned to `_assignee`.
+
+##### name_assignation
+```js
+function name_assignation(string _name) constant returns (address _assignee)
+```
+Returns `_assignee` address that is currently assigned to `_name`.
+
+
+
+##### Debugging functions (for owner only)
+
+##### change_FrontEnd
+```js
+function change_FrontEnd(address _newFrontEnd)
+```
+
+Changes address of the storage to `_newFrontEnd`.
+
+##### change_Owner
+```js
+function change_Owner(address _newOwner)
+```
+
+Changes owner of the contract to `_newOwner`.
+
+
+### Events
+
+##### Error
+
+```js
+event Error(bytes32)
+```
+Triggered when error occurs.
+
+## Notes
+
+`MyContract` / `      something        strange` / `%20%20%11` are valid names for DexNS. It has no checks for inputs. All names that you can imagine are valid.
+
+It can be a good idea to use versions for testing contracts: `MyTest v1.0.0` / `MyTest v9.256.122` etc.
