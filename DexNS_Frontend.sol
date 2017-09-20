@@ -4,13 +4,24 @@ import './DexNS_Storage.sol';
 import './safeMath.sol';
 import './strings.sol';
 
- /**
- * Dexaran Naming Service
- * simple analogue of ENS or ECNS
- * WARNING! This is the very unfinished version!
+ /*
+ * The following is an implementation of the Naming Service that aims to boost
+ * the usability of smart-contracts and provide a human-friendly utility
+ * to work with low-level smart-contract interactions.
+ * 
+ * In addition it can be used as a central controlling unit of the system
+ * with dynamically linked smart-contracts.
+ * 
+ * Current implementation aims to simplify searches by contract names
+ * and automated loading of ABIs for smart-contracts. 
+ * This can be used to provide an automated token adding
+ * to the web wallet interfaces like ClassicEtherWallet as well.
+ *
+ *  Designed by Dexaran, dexaran820@gmail.com
+ * 
  */
  
- contract DexNS_Interface {
+ contract DexNS_Abstract_Interface {
      function name(string)    constant returns (bytes32);
      function getName(string) constant returns (address _owner, address _associated, string _value, uint _end, bytes32 _sig);
      
@@ -35,13 +46,13 @@ import './strings.sol';
  *   address constant_name_service;
  *   function() payable
  *   {
- *        DNS a = DNS(constant_name_service);
- *        a.addressOf("DEX ICO").send(msg.value);
+ *        DexNS_Storage dexns = DexNS_Storage(constant_name_service);
+ *        dexns.addressOf("Recipient name").send(msg.value);
  *   }
  *}
  */
  
- contract DexNS is safeMath
+ contract DexNS_Frontend is safeMath
  {
     using strings for *;
     
@@ -84,7 +95,7 @@ import './strings.sol';
     
     mapping (bytes32 => uint256) public expirations;
     
-    function DexNS()
+    function DexNS_Frontend()
     {
         owner             = msg.sender;
         db                = DexNS_Storage(0x429611c633806a03447391026a538a022e1e2731);
@@ -108,8 +119,12 @@ import './strings.sol';
             {
                 db.registerAndUpdateName(_name, _owner, _destination, _metadata, _hideOwner);
                 expirations[_sig] = safeAdd(now, owningTime);
-                if (db.addressOf("DexNS commission").send(msg.value))
+                if (db.addressOf("DexNS commission").send(namePrice))
                 {
+                    if(safeSub(msg.value, namePrice ) > 0)
+                    {
+                        msg.sender.transfer(msg.value - namePrice);
+                    }
                     NameRegistered(_name, _owner);
                     return true;
                 }
@@ -127,8 +142,12 @@ import './strings.sol';
             {
                 db.registerName(msg.sender, _name);
                 expirations[_sig] = safeAdd(now, owningTime);
-                if (db.addressOf("DexNS commission").send(msg.value))
+                if (db.addressOf("DexNS commission").send(namePrice))
                 {
+                    if(safeSub(msg.value, namePrice ) > 0)
+                    {
+                        msg.sender.transfer(msg.value - namePrice);
+                    }
                     NameRegistered(_name, msg.sender);
                     return true;
                 }
