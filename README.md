@@ -1,5 +1,13 @@
 # Decentralized Naming Service
 
+## Overview
+
+DexNS allows to register human-readable names that could be resolved into Ethereum hex-addresses. Currently, names are free. You can own your name within 1 year after the moment of registration. You can extend name ownership after the certain amount of time will pass. DexNS provides names in human-readable text format. DexNS contract allows any names of any lengths and any characters, but third party services such as ClassicEtherWallet may filter confusing characters and weird names. As the result, it is not recommended to register names with whitespaces and names ending in ENS tld resolutions ( .eth / .etc / .reverse ). You can register your e-mail address as Name for example ( `dexaran@ethereumclassic.org` ). Any user will be able to send ETH, ETC, EXP, UBQ, MUSICOIN and testnet Ether to your address that is assigned to the registered name via ClassicEtherWallet. 
+
+(1) Yes, you can use one DexNS Name on multiple chains to receive different currencies such are ETH, ETC, EXP, UBQ.
+
+(2) Yes, you can store multiple currencies in one Ethereum wallet address.
+
 ## Contracts
 
 DexNS 3.0 contracts are currently deployed on ETC mainnet.
@@ -7,25 +15,45 @@ DexNS 3.0 contracts are currently deployed on ETC mainnet.
 #### DexNS_Frontend.sol
 
 This contract serves to register and manage Names.
-DexNS frontend contract: [0x5e9b151eb9742c20679e1d96e5c3633678cab724](https://gastracker.io/addr/0x5e9b151eb9742c20679e1d96e5c3633678cab724)
+DexNS frontend contract: [0x101f1920e4cD9c7e2aF056E2cB1954d0DD9647b9](https://gastracker.io/addr/0x101f1920e4cD9c7e2aF056E2cB1954d0DD9647b9)
 
 #### DexNS_Storage.sol
 
 This contract serves to access content of the already-registered Names.
-DexNS storage contract: [0x429611c633806a03447391026a538a022e1e2731](https://gastracker.io/addr/0x429611c633806a03447391026a538a022e1e2731)
+DexNS storage contract: [0x28fc417c046d409c14456cec0fc6f9cde46cc9f3](https://gastracker.io/addr/0x28fc417c046d409c14456cec0fc6f9cde46cc9f3)
+
+# How do I register a name?
+
+1. Navigate to ClassicEtherWallet [contracts tab](https://ethereumproject.github.io/etherwallet/?network=ETC#contracts).
+
+2. Choose DexNS Frontend Contract from default contracts list and click the "ACCESS" button. (make sure that contract address is `0x101f1920e4cD9c7e2aF056E2cB1954d0DD9647b9`)
+
+3. (OPTIONAL: check name availability) Choose `endtimeOf` function name to check whether the name is available or not. 
+
+3.1 (OPTIONAL: check name availability) Type the desired name into `_name string` input box. You should just type Name in text format. For example `dexaran@ethereumclassic.org`.
+
+3.2 (OPTIONAL: check name availability) Click "READ" button and check if the ` _expires uint256` field is equal to 0 or not. As you can see for `dexaran@ethereumclassic.org` it is not equal to zero which means that this name is already owned. You can not register a name that is already owned. You should pick an another name in this case.
+
+4. Choose `registerName` function from the functions dropdown menu.
+
+5. Type the desired Name into `_name string` input box. You should enter the name in text format. You must enter a name in text format as it will be available to others.
+
+6. Unlock your wallet and click "WRITE" button. Make sure that you have provided enough gas for transaction to execute. You should keep in mind that longer Names will require more gas. 200 000 GAS is enough for most names.
+
+7. Wait for transaction to submit. You will immediately become the owner of the name after the transaction is successfully submitted to the block. You will own this Name for 1 year. After 1 year you should visit DexNS contract again if you would like to extend Name ownership.
 
 ## Interaction with DexNS
 
-To register or manage names you should call the [DexNS interface contract](https://github.com/EthereumCommonwealth/DexNS/blob/master/DexNS.sol) contract (0x5e9b151eb9742c20679e1d96e5c3633678cab724).
+To register or manage names you should call the [DexNS frontend contract](https://github.com/EthereumCommonwealth/DexNS/blob/master/DexNS_Frontend.sol) contract (0x101f1920e4cD9c7e2aF056E2cB1954d0DD9647b9).
 
-To interact with the contents of already registered names, you should call [DexNS state storage contract](https://github.com/EthereumCommonwealth/DexNS/blob/master/DexNS_Storage.sol) (0x429611c633806a03447391026a538a022e1e2731).
+To interact with the contents of already registered names, you should call [DexNS state storage contract](https://github.com/EthereumCommonwealth/DexNS/blob/master/DexNS_Storage.sol) (0x28fc417c046d409c14456cec0fc6f9cde46cc9f3).
 
 DexNS can also be used as a control unit for dynamically linking contracts in a contract system. You should interact with state storage contract to access names.
 Example:
 
 ```js
  // This will send 100 WEI to the "My Friend" address.
-    DexNS_Storage dexns = DexNS_Storage(0x429611c633806a03447391026a538a022e1e2731);
+    DexNS_Storage dexns = DexNS_Storage(0x28fc417c046d409c14456cec0fc6f9cde46cc9f3);
     dexns.addressOf("My Friend").transfer(100);
 ```
 
@@ -37,6 +65,10 @@ Service provides an opportunity to register a key-phrase 'Name' and associate on
 
 Addresses or data can be accessed from the external contract. 
 Naming Service content can't be blocked, removed or censored in any other way. Everyone is allowed to do whatever he/she wants with it.
+
+# How do I register my ERC20/ERC223 token on DexNS?
+
+Coming soon ...
 
 ### Metadata specification
 
@@ -57,6 +89,10 @@ Use the following chain identifier flags:
 `-RIN` for Rinkeby.
 
 `-KOV` for Kovan.
+
+`-CLO` for Callisto mainnet.
+
+`-CLT` for Callisto testnet.
 
 Use the following key flags before data chunks:
 
@@ -85,7 +121,7 @@ You can register Name and became its owner. You will own the name before the exp
 
 ### Functions
 
-### `DexNS.sol` contract
+### `DexNS_Frontend.sol` contract
 
 ##### registerName
 
@@ -324,3 +360,11 @@ Triggered when error occurs.
 `MyContract` / `      something        strange` / `%20%20%11` are valid names for DexNS. It has no checks for inputs. All names that you can imagine are valid.
 
 It can be a good idea to use versions for testing contracts: `MyTest v1.0.0` / `MyTest v9.256.122` etc.
+
+# Deploying DexNS contracts.
+
+1. Compile and deploy the [DexNS storage](https://github.com/EthereumCommonwealth/DexNS/blob/master/DexNS_Storage.sol) contract.
+
+2. Update the DexNS Frontend contract to init a db on a valid address (or change it after the contract is deployed): https://github.com/EthereumCommonwealth/DexNS/blob/master/DexNS_Frontend.sol#L112
+
+3. Call the [change_Frontend_Address](https://github.com/EthereumCommonwealth/DexNS/blob/master/DexNS_Storage.sol#L399) function of the Storage contract to upload the address of the Frontend contract.
